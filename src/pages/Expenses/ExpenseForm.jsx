@@ -6,23 +6,9 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useExpenses } from '../../hooks/useExpenses';
+import { useSettings } from '../../hooks/useSettings';
+import { CURRENCIES, getCurrencySymbol } from '../../utils/currency';
 import { COLORS } from '../../theme';
-
-const CURRENCIES = [
-  { code: 'INR', symbol: '\u20B9' },
-  { code: 'USD', symbol: '$' },
-  { code: 'EUR', symbol: '\u20AC' },
-  { code: 'GBP', symbol: '\u00A3' },
-];
-
-const emptyForm = {
-  description: '',
-  amount: '',
-  category: '',
-  currency: 'INR',
-  date: '',
-  notes: '',
-};
 
 export default function ExpenseForm({
   open,
@@ -33,7 +19,10 @@ export default function ExpenseForm({
   onOpenCategoryManager,
 }) {
   const { addExpense, updateExpense, deleteExpense } = useExpenses();
-  const [form, setForm] = useState(emptyForm);
+  const { defaultCurrency } = useSettings();
+  const [form, setForm] = useState({
+    description: '', amount: '', category: '', currency: defaultCurrency, date: '', notes: '',
+  });
 
   const isEdit = Boolean(expense);
 
@@ -44,23 +33,25 @@ export default function ExpenseForm({
           description: expense.description || '',
           amount: String(expense.amount || ''),
           category: expense.category || visibleCategories[0] || 'Other',
-          currency: expense.currency || 'INR',
+          currency: expense.currency || defaultCurrency,
           date: expense.date || defaultDate,
           notes: expense.notes || '',
         });
       } else {
         setForm({
-          ...emptyForm,
+          description: '', amount: '',
           category: visibleCategories[0] || 'Other',
+          currency: defaultCurrency,
           date: defaultDate,
+          notes: '',
         });
       }
     }
-  }, [open, expense, visibleCategories, defaultDate]);
+  }, [open, expense, visibleCategories, defaultDate, defaultCurrency]);
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
-  const currencySymbol = CURRENCIES.find((c) => c.code === form.currency)?.symbol || '\u20B9';
+  const currencySymbol = getCurrencySymbol(form.currency);
   const canSubmit = form.description.trim() && form.amount && visibleCategories.length > 0;
 
   const handleSubmit = async () => {
@@ -181,7 +172,7 @@ export default function ExpenseForm({
           size="small"
         >
           {CURRENCIES.map((c) => (
-            <MenuItem key={c.code} value={c.code}>{c.symbol} {c.code}</MenuItem>
+            <MenuItem key={c.code} value={c.code}>{c.symbol} {c.name}</MenuItem>
           ))}
         </TextField>
 

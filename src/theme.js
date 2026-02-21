@@ -106,6 +106,24 @@ const theme = createTheme({
     MuiChip: {
       styleOverrides: { root: { borderRadius: 6, fontWeight: 600 } },
     },
+    MuiMenu: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: COLORS.bg,
+          backgroundImage: 'none',
+          border: `1px solid ${COLORS.border}`,
+        },
+      },
+    },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          '&.Mui-selected': { backgroundColor: `${COLORS.accent}15` },
+          '&.Mui-selected:hover': { backgroundColor: `${COLORS.accent}25` },
+          '&:hover': { backgroundColor: `${COLORS.bgCardHover}` },
+        },
+      },
+    },
   },
 });
 
