@@ -146,20 +146,24 @@ export default function MonthFormDialog({ open, onClose, editMode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incRows, expRows, savRows, monthLabel]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const data = buildMonthData();
     if (!data.month || data.totalIncome === 0) return;
 
-    if (editMode) {
-      updateMonth(data);
-    } else {
-      addMonth(data);
+    try {
+      if (editMode) {
+        await updateMonth(data);
+      } else {
+        await addMonth(data);
+      }
+      onClose();
+    } catch (err) {
+      console.error('Failed to save month:', err);
     }
-    onClose();
   };
 
-  const handleDelete = () => {
-    deleteMonth();
+  const handleDelete = async () => {
+    await deleteMonth();
     onClose();
   };
 

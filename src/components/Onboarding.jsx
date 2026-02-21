@@ -146,8 +146,10 @@ export default function Onboarding({ open, onComplete }) {
               onChange={e => setIncome(e.target.value)}
               type="number"
               placeholder="e.g. 80000"
-              InputProps={{
-                startAdornment: <InputAdornment position="start">{getCurrencySymbol(currency)}</InputAdornment>,
+              slotProps={{
+                input: {
+                  startAdornment: <InputAdornment position="start">{getCurrencySymbol(currency)}</InputAdornment>,
+                },
               }}
             />
           </Box>
