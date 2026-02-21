@@ -7,7 +7,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useExpenses } from '../../hooks/useExpenses';
 import { useSettings } from '../../hooks/useSettings';
-import { CURRENCIES, getCurrencySymbol } from '../../utils/currency';
+import { getCurrencySymbol } from '../../utils/currency';
 import { COLORS } from '../../theme';
 
 export default function ExpenseForm({
@@ -163,18 +163,6 @@ export default function ExpenseForm({
             </Typography>
           )}
         </Box>
-
-        <TextField
-          select
-          label="Currency"
-          value={form.currency}
-          onChange={set('currency')}
-          size="small"
-        >
-          {CURRENCIES.map((c) => (
-            <MenuItem key={c.code} value={c.code}>{c.symbol} {c.name}</MenuItem>
-          ))}
-        </TextField>
 
         <TextField
           label="Date"
