@@ -13,6 +13,7 @@ import Tools from './pages/Tools';
 import Settings from './pages/Settings';
 import { useRecurringProcessor } from './hooks/useRecurringProcessor';
 import Onboarding from './components/Onboarding';
+import InstallPrompt from './components/InstallPrompt';
 
 // Runs recurring transaction processor on app startup
 function RecurringProcessor() {
@@ -44,6 +45,7 @@ export default function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <InstallPrompt />
       <AppProvider>
         <SnackbarProvider>
           <RecurringProcessor />
