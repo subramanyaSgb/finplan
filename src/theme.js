@@ -79,6 +79,9 @@ const theme = createTheme({
     },
     MuiDialog: {
       styleOverrides: {
+        container: {
+          alignItems: 'flex-end',
+        },
         paper: {
           backgroundColor: COLORS.bg,
           borderRadius: '24px 24px 0 0',
@@ -87,17 +90,8 @@ const theme = createTheme({
           margin: 0,
           maxWidth: 480,
           width: '100%',
-          position: 'fixed',
-          bottom: 0,
           maxHeight: '85vh',
-          display: 'flex',
-          flexDirection: 'column',
         },
-      },
-    },
-    MuiDialogContent: {
-      styleOverrides: {
-        root: { overflowY: 'auto' },
       },
     },
     MuiTextField: {

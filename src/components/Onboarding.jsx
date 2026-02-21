@@ -93,15 +93,19 @@ export default function Onboarding({ open, onComplete }) {
   const back = () => setActiveStep(s => s - 1);
 
   return (
-    <Dialog open={open} fullWidth maxWidth="xs" PaperProps={{
-      sx: {
-        borderRadius: '16px !important',
-        position: 'relative !important',
-        bottom: 'auto !important',
-        m: 2,
-        bgcolor: COLORS.bg,
-      }
-    }}>
+    <Dialog
+      open={open}
+      fullWidth
+      maxWidth="xs"
+      sx={{ '& .MuiDialog-container': { alignItems: 'center' } }}
+      PaperProps={{
+        sx: {
+          borderRadius: '16px !important',
+          m: 2,
+          bgcolor: COLORS.bg,
+        }
+      }}
+    >
       <DialogContent>
         <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 3, mt: 1 }}>
           {steps.map(label => (
