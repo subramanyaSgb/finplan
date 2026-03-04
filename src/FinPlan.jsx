@@ -1847,10 +1847,11 @@ export default function FinPlan() {
         setCurrentMonth(0);
       } else {
         setMonthlyData(md);
-        // Default to current calendar month, fall back to latest
+        // Default to current calendar month, fall back to latest (handles "Mar 2026" and "March 2026")
         const now = new Date();
-        const curLabel = MONTHS[now.getMonth()] + " " + now.getFullYear();
-        const curIdx = md.findIndex(m => m.month === curLabel);
+        const curMon = MONTHS[now.getMonth()];
+        const curYear = String(now.getFullYear());
+        const curIdx = md.findIndex(m => m.month.slice(0,3) === curMon && m.month.includes(curYear));
         setCurrentMonth(curIdx >= 0 ? curIdx : Math.max(0, md.length - 1));
       }
       setLoaded(true);
