@@ -774,15 +774,15 @@ const ExpensesTab = ({ expenses, setExpenses, monthlyData, currentMonth, setCurr
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:16 }}>
         <Card style={{ padding:"10px 12px", textAlign:"center" }}>
           <div style={{ fontSize:10, color:COLORS.textMuted, fontWeight:500 }}>BUDGET</div>
-          <div style={{ fontSize:16, fontWeight:700, color:COLORS.red }}>{fmt(budgetTotal)}</div>
+          <div style={{ fontSize:16, fontWeight:700, color:COLORS.red }}>{fmtFull(budgetTotal)}</div>
         </Card>
         <Card style={{ padding:"10px 12px", textAlign:"center" }}>
           <div style={{ fontSize:10, color:COLORS.textMuted, fontWeight:500 }}>QUICK ADD</div>
-          <div style={{ fontSize:16, fontWeight:700, color:COLORS.orange }}>{fmt(quickAddTotal)}</div>
+          <div style={{ fontSize:16, fontWeight:700, color:COLORS.orange }}>{fmtFull(quickAddTotal)}</div>
         </Card>
         <Card style={{ padding:"10px 12px", textAlign:"center" }}>
           <div style={{ fontSize:10, color:COLORS.textMuted, fontWeight:500 }}>TOTAL</div>
-          <div style={{ fontSize:16, fontWeight:700, color:COLORS.white }}>{fmt(grandTotal)}</div>
+          <div style={{ fontSize:16, fontWeight:700, color:COLORS.white }}>{fmtFull(grandTotal)}</div>
         </Card>
       </div>
 
