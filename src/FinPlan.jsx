@@ -1847,7 +1847,11 @@ export default function FinPlan() {
         setCurrentMonth(0);
       } else {
         setMonthlyData(md);
-        setCurrentMonth(Math.max(0, md.length - 1));
+        // Default to current calendar month, fall back to latest
+        const now = new Date();
+        const curLabel = MONTHS[now.getMonth()] + " " + now.getFullYear();
+        const curIdx = md.findIndex(m => m.month === curLabel);
+        setCurrentMonth(curIdx >= 0 ? curIdx : Math.max(0, md.length - 1));
       }
       setLoaded(true);
     })();
