@@ -1555,6 +1555,7 @@ const ToolsTab = ({ reminders, setReminders }) => {
   const [showDeleteReminderConfirm, setShowDeleteReminderConfirm] = useState(null);
   const [rForm, setRForm] = useState({ name:"", amount:"", dueDate:"1", category:"Bill" });
   const [hikeMode, setHikeMode] = useState("pct"); // "pct" = calc % from salaries, "sal" = calc salary from %
+  const [hikeType, setHikeType] = useState("ctc"); // "monthly" or "ctc"
   const [hike, setHike] = useState({ oldSalary:"", newSalary:"", hikePct:"" });
   const [hikeResult, setHikeResult] = useState(null);
 
@@ -1563,19 +1564,23 @@ const ToolsTab = ({ reminders, setReminders }) => {
   const calcHike = () => {
     const oldS = parseFloat(hike.oldSalary);
     if (!oldS) return;
+    let newS, pctVal;
     if (hikeMode === "pct") {
-      const newS = parseFloat(hike.newSalary);
+      newS = parseFloat(hike.newSalary);
       if (!newS) return;
-      const pctVal = ((newS - oldS) / oldS) * 100;
-      const diff = newS - oldS;
-      setHikeResult({ oldSalary:oldS, newSalary:newS, hikePct:pctVal, diff });
+      pctVal = ((newS - oldS) / oldS) * 100;
     } else {
-      const pctVal = parseFloat(hike.hikePct);
+      pctVal = parseFloat(hike.hikePct);
       if (pctVal === undefined || isNaN(pctVal)) return;
-      const newS = oldS + (oldS * pctVal / 100);
-      const diff = newS - oldS;
-      setHikeResult({ oldSalary:oldS, newSalary:newS, hikePct:pctVal, diff });
+      newS = oldS + (oldS * pctVal / 100);
     }
+    const diff = newS - oldS;
+    const isAnnual = hikeType === "ctc";
+    setHikeResult({
+      old:oldS, new:newS, hikePct:pctVal, diff,
+      oldMonthly: isAnnual ? oldS/12 : oldS, newMonthly: isAnnual ? newS/12 : newS, diffMonthly: isAnnual ? diff/12 : diff,
+      oldAnnual: isAnnual ? oldS : oldS*12, newAnnual: isAnnual ? newS : newS*12, diffAnnual: isAnnual ? diff : diff*12,
+    });
   };
 
   const calcEMI = () => {
@@ -1691,20 +1696,31 @@ const ToolsTab = ({ reminders, setReminders }) => {
         <div>
           <Card style={{ marginBottom:16 }}>
             <div style={{ fontSize:14, fontWeight:600, color:COLORS.text, marginBottom:12 }}>Salary Hike Calculator</div>
-            {/* Mode toggle */}
+            {/* Salary type toggle */}
+            <div style={{ display:"flex", gap:4, marginBottom:10, background:COLORS.bg, borderRadius:10, padding:3 }}>
+              <button onClick={()=>{setHikeType("ctc");setHikeResult(null);}} style={{
+                flex:1, padding:"8px 6px", borderRadius:8, border:"none", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit",
+                background:hikeType==="ctc"?COLORS.accent+"25":"transparent", color:hikeType==="ctc"?COLORS.accentLight:COLORS.textMuted
+              }}>Annual CTC</button>
+              <button onClick={()=>{setHikeType("monthly");setHikeResult(null);}} style={{
+                flex:1, padding:"8px 6px", borderRadius:8, border:"none", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit",
+                background:hikeType==="monthly"?COLORS.accent+"25":"transparent", color:hikeType==="monthly"?COLORS.accentLight:COLORS.textMuted
+              }}>Monthly Salary</button>
+            </div>
+            {/* Calc mode toggle */}
             <div style={{ display:"flex", gap:4, marginBottom:14, background:COLORS.bg, borderRadius:10, padding:3 }}>
               <button onClick={()=>{setHikeMode("pct");setHikeResult(null);}} style={{
                 flex:1, padding:"8px 6px", borderRadius:8, border:"none", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit",
                 background:hikeMode==="pct"?COLORS.accent+"25":"transparent", color:hikeMode==="pct"?COLORS.accentLight:COLORS.textMuted
               }}>Find % Hike</button>
               <button onClick={()=>{setHikeMode("sal");setHikeResult(null);}} style={{
-                flex:1, padding:"8px 6px", borderRadius:10, border:"none", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit",
+                flex:1, padding:"8px 6px", borderRadius:8, border:"none", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit",
                 background:hikeMode==="sal"?COLORS.accent+"25":"transparent", color:hikeMode==="sal"?COLORS.accentLight:COLORS.textMuted
-              }}>Find New Salary</button>
+              }}>Find New {hikeType==="ctc"?"CTC":"Salary"}</button>
             </div>
-            <Input label="Current / Old Salary" value={hike.oldSalary} onChange={v=>setHike(h=>({...h,oldSalary:v}))} type="number" prefix="₹" placeholder="e.g. 50000"/>
+            <Input label={hikeType==="ctc"?"Current / Old CTC":"Current / Old Salary"} value={hike.oldSalary} onChange={v=>setHike(h=>({...h,oldSalary:v}))} type="number" prefix="₹" placeholder={hikeType==="ctc"?"e.g. 600000":"e.g. 50000"}/>
             {hikeMode === "pct" ? (
-              <Input label="New Salary" value={hike.newSalary} onChange={v=>setHike(h=>({...h,newSalary:v}))} type="number" prefix="₹" placeholder="e.g. 60000"/>
+              <Input label={hikeType==="ctc"?"New CTC":"New Salary"} value={hike.newSalary} onChange={v=>setHike(h=>({...h,newSalary:v}))} type="number" prefix="₹" placeholder={hikeType==="ctc"?"e.g. 800000":"e.g. 60000"}/>
             ) : (
               <Input label="Hike Percentage" value={hike.hikePct} onChange={v=>setHike(h=>({...h,hikePct:v}))} type="number" suffix="%" placeholder="e.g. 20"/>
             )}
@@ -1715,43 +1731,75 @@ const ToolsTab = ({ reminders, setReminders }) => {
             <Card style={{ background:`linear-gradient(135deg, ${COLORS.accentDim}, ${COLORS.bgCard})` }}>
               <div style={{ fontSize:12, color:COLORS.accentLight, fontWeight:600, marginBottom:12 }}>HIKE SUMMARY</div>
               <div style={{ textAlign:"center", marginBottom:16 }}>
-                <div style={{ fontSize:11, color:COLORS.textMuted }}>{hikeMode==="pct"?"Your Hike":"New Salary"}</div>
+                <div style={{ fontSize:11, color:COLORS.textMuted }}>Your Hike</div>
                 <div style={{ fontSize:32, fontWeight:800, color:hikeResult.hikePct>=0?COLORS.green:COLORS.red, letterSpacing:-1 }}>
-                  {hikeMode==="pct" ? (hikeResult.hikePct>=0?"+":"") + hikeResult.hikePct.toFixed(1) + "%" : fmtFull(hikeResult.newSalary)}
+                  {(hikeResult.hikePct>=0?"+":"") + hikeResult.hikePct.toFixed(1) + "%"}
                 </div>
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
                 <div style={{ textAlign:"center" }}>
-                  <div style={{ fontSize:10, color:COLORS.textMuted }}>Old Salary</div>
-                  <div style={{ fontSize:14, fontWeight:700, color:COLORS.text }}>{fmt(hikeResult.oldSalary)}</div>
+                  <div style={{ fontSize:10, color:COLORS.textMuted }}>Old {hikeType==="ctc"?"CTC":"Salary"}</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:COLORS.text }}>{fmt(hikeResult.old)}</div>
                 </div>
                 <div style={{ textAlign:"center" }}>
                   <div style={{ fontSize:10, color:COLORS.textMuted }}>Difference</div>
                   <div style={{ fontSize:14, fontWeight:700, color:hikeResult.diff>=0?COLORS.green:COLORS.red }}>{(hikeResult.diff>=0?"+":"") + fmt(Math.abs(hikeResult.diff))}</div>
                 </div>
                 <div style={{ textAlign:"center" }}>
-                  <div style={{ fontSize:10, color:COLORS.textMuted }}>New Salary</div>
-                  <div style={{ fontSize:14, fontWeight:700, color:COLORS.accent }}>{fmt(hikeResult.newSalary)}</div>
+                  <div style={{ fontSize:10, color:COLORS.textMuted }}>New {hikeType==="ctc"?"CTC":"Salary"}</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:COLORS.accent }}>{fmt(hikeResult.new)}</div>
                 </div>
               </div>
               {/* Visual bar */}
               <div style={{ display:"flex", gap:2, height:12, borderRadius:6, overflow:"hidden", marginTop:14 }}>
-                <div style={{ flex:hikeResult.oldSalary, background:COLORS.accent }}/>
+                <div style={{ flex:hikeResult.old, background:COLORS.accent }}/>
                 {hikeResult.diff > 0 && <div style={{ flex:hikeResult.diff, background:COLORS.green }}/>}
               </div>
               <div style={{ display:"flex", justifyContent:"space-between", marginTop:6, fontSize:10 }}>
-                <span style={{ color:COLORS.accentLight }}>Old {pct(hikeResult.oldSalary, hikeResult.newSalary)}%</span>
-                <span style={{ color:COLORS.green }}>Hike {pct(Math.abs(hikeResult.diff), hikeResult.newSalary)}%</span>
+                <span style={{ color:COLORS.accentLight }}>Old {pct(hikeResult.old, hikeResult.new)}%</span>
+                <span style={{ color:COLORS.green }}>Hike {pct(Math.abs(hikeResult.diff), hikeResult.new)}%</span>
               </div>
-              {/* Annual comparison */}
-              <div style={{ borderTop:`1px solid ${COLORS.border}`, marginTop:14, paddingTop:12, display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-                <div style={{ textAlign:"center" }}>
-                  <div style={{ fontSize:10, color:COLORS.textMuted }}>Old Annual (CTC)</div>
-                  <div style={{ fontSize:14, fontWeight:700, color:COLORS.text }}>{fmt(hikeResult.oldSalary * 12)}</div>
+              {/* Monthly & Annual breakdown */}
+              <div style={{ borderTop:`1px solid ${COLORS.border}`, marginTop:14, paddingTop:12 }}>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:10 }}>
+                  <div style={{ fontSize:10, color:COLORS.textMuted, fontWeight:600 }}>MONTHLY</div>
+                  <div/>
+                  <div/>
                 </div>
-                <div style={{ textAlign:"center" }}>
-                  <div style={{ fontSize:10, color:COLORS.textMuted }}>New Annual (CTC)</div>
-                  <div style={{ fontSize:14, fontWeight:700, color:COLORS.accent }}>{fmt(hikeResult.newSalary * 12)}</div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
+                  <div style={{ textAlign:"center" }}>
+                    <div style={{ fontSize:10, color:COLORS.textMuted }}>Old</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:COLORS.text }}>{fmt(hikeResult.oldMonthly)}</div>
+                  </div>
+                  <div style={{ textAlign:"center" }}>
+                    <div style={{ fontSize:10, color:COLORS.textMuted }}>Increase</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:COLORS.green }}>+{fmt(Math.abs(hikeResult.diffMonthly))}</div>
+                  </div>
+                  <div style={{ textAlign:"center" }}>
+                    <div style={{ fontSize:10, color:COLORS.textMuted }}>New</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:COLORS.accent }}>{fmt(hikeResult.newMonthly)}</div>
+                  </div>
+                </div>
+              </div>
+              <div style={{ borderTop:`1px solid ${COLORS.border}`, marginTop:12, paddingTop:12 }}>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:10 }}>
+                  <div style={{ fontSize:10, color:COLORS.textMuted, fontWeight:600 }}>ANNUAL CTC</div>
+                  <div/>
+                  <div/>
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
+                  <div style={{ textAlign:"center" }}>
+                    <div style={{ fontSize:10, color:COLORS.textMuted }}>Old</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:COLORS.text }}>{fmt(hikeResult.oldAnnual)}</div>
+                  </div>
+                  <div style={{ textAlign:"center" }}>
+                    <div style={{ fontSize:10, color:COLORS.textMuted }}>Increase</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:COLORS.green }}>+{fmt(Math.abs(hikeResult.diffAnnual))}</div>
+                  </div>
+                  <div style={{ textAlign:"center" }}>
+                    <div style={{ fontSize:10, color:COLORS.textMuted }}>New</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:COLORS.accent }}>{fmt(hikeResult.newAnnual)}</div>
+                  </div>
                 </div>
               </div>
             </Card>
