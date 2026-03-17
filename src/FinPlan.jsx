@@ -47,6 +47,7 @@ const Icons = {
   bike: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 100-2 1 1 0 000 2zM12 17.5V14l-3-3 4-3 2 3h3"/></svg>,
   download: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>,
   calc: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8" y2="10.01"/><line x1="12" y1="10" x2="12" y2="10.01"/><line x1="16" y1="10" x2="16" y2="10.01"/><line x1="8" y1="14" x2="8" y2="14.01"/><line x1="12" y1="14" x2="12" y2="14.01"/><line x1="16" y1="14" x2="16" y2="14.01"/><line x1="8" y1="18" x2="8" y2="18.01"/><line x1="12" y1="18" x2="12" y2="18.01"/><line x1="16" y1="18" x2="16" y2="18.01"/></svg>,
+  trendUp: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
 };
 
 // ─── Historical Data from Excel ───
@@ -1553,8 +1554,29 @@ const ToolsTab = ({ reminders, setReminders }) => {
   const [editReminderId, setEditReminderId] = useState(null);
   const [showDeleteReminderConfirm, setShowDeleteReminderConfirm] = useState(null);
   const [rForm, setRForm] = useState({ name:"", amount:"", dueDate:"1", category:"Bill" });
+  const [hikeMode, setHikeMode] = useState("pct"); // "pct" = calc % from salaries, "sal" = calc salary from %
+  const [hike, setHike] = useState({ oldSalary:"", newSalary:"", hikePct:"" });
+  const [hikeResult, setHikeResult] = useState(null);
 
   const resetRForm = () => setRForm({ name:"", amount:"", dueDate:"1", category:"Bill" });
+
+  const calcHike = () => {
+    const oldS = parseFloat(hike.oldSalary);
+    if (!oldS) return;
+    if (hikeMode === "pct") {
+      const newS = parseFloat(hike.newSalary);
+      if (!newS) return;
+      const pctVal = ((newS - oldS) / oldS) * 100;
+      const diff = newS - oldS;
+      setHikeResult({ oldSalary:oldS, newSalary:newS, hikePct:pctVal, diff });
+    } else {
+      const pctVal = parseFloat(hike.hikePct);
+      if (pctVal === undefined || isNaN(pctVal)) return;
+      const newS = oldS + (oldS * pctVal / 100);
+      const diff = newS - oldS;
+      setHikeResult({ oldSalary:oldS, newSalary:newS, hikePct:pctVal, diff });
+    }
+  };
 
   const calcEMI = () => {
     const P = parseFloat(emi.principal), R = parseFloat(emi.rate)/12/100, N = parseFloat(emi.tenure);
@@ -1596,8 +1618,9 @@ const ToolsTab = ({ reminders, setReminders }) => {
   };
 
   const tabs = [
-    { id:"emi", label:"EMI Calculator", icon:Icons.calc },
-    { id:"reminders", label:"Bill Reminders", icon:Icons.bell },
+    { id:"emi", label:"EMI", icon:Icons.calc },
+    { id:"hike", label:"Salary Hike", icon:Icons.trendUp },
+    { id:"reminders", label:"Reminders", icon:Icons.bell },
   ];
 
   return (
@@ -1657,6 +1680,79 @@ const ToolsTab = ({ reminders, setReminders }) => {
               <div style={{ display:"flex", justifyContent:"space-between", marginTop:6, fontSize:10 }}>
                 <span style={{ color:COLORS.accentLight }}>Principal {pct(parseFloat(emi.principal), emiResult.total)}%</span>
                 <span style={{ color:COLORS.red }}>Interest {pct(emiResult.interest, emiResult.total)}%</span>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Salary Hike Calculator */}
+      {activeT === "hike" && (
+        <div>
+          <Card style={{ marginBottom:16 }}>
+            <div style={{ fontSize:14, fontWeight:600, color:COLORS.text, marginBottom:12 }}>Salary Hike Calculator</div>
+            {/* Mode toggle */}
+            <div style={{ display:"flex", gap:4, marginBottom:14, background:COLORS.bg, borderRadius:10, padding:3 }}>
+              <button onClick={()=>{setHikeMode("pct");setHikeResult(null);}} style={{
+                flex:1, padding:"8px 6px", borderRadius:8, border:"none", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit",
+                background:hikeMode==="pct"?COLORS.accent+"25":"transparent", color:hikeMode==="pct"?COLORS.accentLight:COLORS.textMuted
+              }}>Find % Hike</button>
+              <button onClick={()=>{setHikeMode("sal");setHikeResult(null);}} style={{
+                flex:1, padding:"8px 6px", borderRadius:10, border:"none", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit",
+                background:hikeMode==="sal"?COLORS.accent+"25":"transparent", color:hikeMode==="sal"?COLORS.accentLight:COLORS.textMuted
+              }}>Find New Salary</button>
+            </div>
+            <Input label="Current / Old Salary" value={hike.oldSalary} onChange={v=>setHike(h=>({...h,oldSalary:v}))} type="number" prefix="₹" placeholder="e.g. 50000"/>
+            {hikeMode === "pct" ? (
+              <Input label="New Salary" value={hike.newSalary} onChange={v=>setHike(h=>({...h,newSalary:v}))} type="number" prefix="₹" placeholder="e.g. 60000"/>
+            ) : (
+              <Input label="Hike Percentage" value={hike.hikePct} onChange={v=>setHike(h=>({...h,hikePct:v}))} type="number" suffix="%" placeholder="e.g. 20"/>
+            )}
+            <Button onClick={calcHike} full>Calculate</Button>
+          </Card>
+
+          {hikeResult && (
+            <Card style={{ background:`linear-gradient(135deg, ${COLORS.accentDim}, ${COLORS.bgCard})` }}>
+              <div style={{ fontSize:12, color:COLORS.accentLight, fontWeight:600, marginBottom:12 }}>HIKE SUMMARY</div>
+              <div style={{ textAlign:"center", marginBottom:16 }}>
+                <div style={{ fontSize:11, color:COLORS.textMuted }}>{hikeMode==="pct"?"Your Hike":"New Salary"}</div>
+                <div style={{ fontSize:32, fontWeight:800, color:hikeResult.hikePct>=0?COLORS.green:COLORS.red, letterSpacing:-1 }}>
+                  {hikeMode==="pct" ? (hikeResult.hikePct>=0?"+":"") + hikeResult.hikePct.toFixed(1) + "%" : fmtFull(hikeResult.newSalary)}
+                </div>
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
+                <div style={{ textAlign:"center" }}>
+                  <div style={{ fontSize:10, color:COLORS.textMuted }}>Old Salary</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:COLORS.text }}>{fmt(hikeResult.oldSalary)}</div>
+                </div>
+                <div style={{ textAlign:"center" }}>
+                  <div style={{ fontSize:10, color:COLORS.textMuted }}>Difference</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:hikeResult.diff>=0?COLORS.green:COLORS.red }}>{(hikeResult.diff>=0?"+":"") + fmt(Math.abs(hikeResult.diff))}</div>
+                </div>
+                <div style={{ textAlign:"center" }}>
+                  <div style={{ fontSize:10, color:COLORS.textMuted }}>New Salary</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:COLORS.accent }}>{fmt(hikeResult.newSalary)}</div>
+                </div>
+              </div>
+              {/* Visual bar */}
+              <div style={{ display:"flex", gap:2, height:12, borderRadius:6, overflow:"hidden", marginTop:14 }}>
+                <div style={{ flex:hikeResult.oldSalary, background:COLORS.accent }}/>
+                {hikeResult.diff > 0 && <div style={{ flex:hikeResult.diff, background:COLORS.green }}/>}
+              </div>
+              <div style={{ display:"flex", justifyContent:"space-between", marginTop:6, fontSize:10 }}>
+                <span style={{ color:COLORS.accentLight }}>Old {pct(hikeResult.oldSalary, hikeResult.newSalary)}%</span>
+                <span style={{ color:COLORS.green }}>Hike {pct(Math.abs(hikeResult.diff), hikeResult.newSalary)}%</span>
+              </div>
+              {/* Annual comparison */}
+              <div style={{ borderTop:`1px solid ${COLORS.border}`, marginTop:14, paddingTop:12, display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                <div style={{ textAlign:"center" }}>
+                  <div style={{ fontSize:10, color:COLORS.textMuted }}>Old Annual (CTC)</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:COLORS.text }}>{fmt(hikeResult.oldSalary * 12)}</div>
+                </div>
+                <div style={{ textAlign:"center" }}>
+                  <div style={{ fontSize:10, color:COLORS.textMuted }}>New Annual (CTC)</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:COLORS.accent }}>{fmt(hikeResult.newSalary * 12)}</div>
+                </div>
               </div>
             </Card>
           )}
