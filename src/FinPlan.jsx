@@ -848,7 +848,7 @@ const ExpensesTab = ({ expenses, setExpenses, monthlyData, currentMonth, setCurr
       {catEntries.length > 0 && (
         <Card style={{ marginBottom:12 }}>
           <div style={{ fontSize:13, fontWeight:600, color:COLORS.text, marginBottom:10 }}>Quick-Add by Category</div>
-          {catEntries.slice(0,6).map(([cat, val], i) => (
+          {catEntries.map(([cat, val], i) => (
             <div key={cat} style={{ marginBottom:8 }}>
               <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, marginBottom:3 }}>
                 <span style={{ color:COLORS.text }}>{cat}</span>
