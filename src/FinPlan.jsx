@@ -388,15 +388,18 @@ const DashboardTab = ({ currentMonth, setCurrentMonth, expenses, goals, monthlyD
       ))}
 
       {/* Preview */}
-      {(formIncRows.some(r=>r.amount) || formExpRows.some(r=>r.amount)) && (() => {
+      {(formIncRows.some(r=>r.amount) || formExpRows.some(r=>r.amount) || formSavRows.some(r=>r.amount)) && (() => {
         const preview = buildMonthData();
+        const spentExpenses = Object.values(preview.expenses||{}).reduce((s,v)=>s+v, 0);
+        const spentSavings = Object.values(preview.savings||{}).reduce((s,v)=>s+v, 0);
         return (
           <Card style={{ marginTop:12, background:COLORS.bg, border:`1px solid ${COLORS.border}` }}>
             <div style={{ fontSize:11, fontWeight:600, color:COLORS.textMuted, marginBottom:6 }}>PREVIEW</div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, fontSize:12 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, fontSize:12 }}>
               <div><span style={{ color:COLORS.textMuted }}>Income</span><br/><span style={{ color:COLORS.accentLight, fontWeight:700 }}>{fmtFull(preview.totalIncome)}</span></div>
-              <div><span style={{ color:COLORS.textMuted }}>Expenses</span><br/><span style={{ color:COLORS.red, fontWeight:700 }}>{fmtFull(preview.totalExpenses)}</span></div>
-              <div><span style={{ color:COLORS.textMuted }}>Left</span><br/><span style={{ color:preview.left>=0?COLORS.green:COLORS.red, fontWeight:700 }}>{fmtFull(preview.left)}</span></div>
+              <div><span style={{ color:COLORS.textMuted }}>Expenses</span><br/><span style={{ color:COLORS.red, fontWeight:700 }}>{fmtFull(spentExpenses)}</span></div>
+              <div><span style={{ color:COLORS.textMuted }}>Savings</span><br/><span style={{ color:COLORS.green, fontWeight:700 }}>{fmtFull(spentSavings)}</span></div>
+              <div><span style={{ color:COLORS.textMuted }}>Remaining Balance</span><br/><span style={{ color:preview.left>=0?COLORS.green:COLORS.red, fontWeight:700 }}>{fmtFull(preview.left)}</span></div>
             </div>
           </Card>
         );
