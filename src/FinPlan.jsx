@@ -227,6 +227,34 @@ const DashboardTab = ({ currentMonth, setCurrentMonth, expenses, goals, monthlyD
   const [showAddMonth, setShowAddMonth] = useState(false);
   const [showEditMonth, setShowEditMonth] = useState(false);
   const [showDeleteMonthConfirm, setShowDeleteMonthConfirm] = useState(false);
+  const [checklistOpen, setChecklistOpen] = useState(true);
+
+  // Index actually being viewed (data falls back to latest when mi is out of range)
+  const realIdx = hist[mi] ? mi : Math.max(0, hist.length - 1);
+
+  // Toggle a single line item's paid/received status for the current month
+  const togglePaid = (section, name) => {
+    setMonthlyData(prev => prev.map((m, i) => {
+      if (i !== realIdx) return m;
+      const paid = { ...(m.paid || {}) };
+      const sec = { ...(paid[section] || {}) };
+      sec[name] = !sec[name];
+      paid[section] = sec;
+      return { ...m, paid };
+    }));
+  };
+
+  // Mark every item in a section paid (val=true) or clear them (val=false)
+  const setSectionPaid = (section, names, val) => {
+    setMonthlyData(prev => prev.map((m, i) => {
+      if (i !== realIdx) return m;
+      const paid = { ...(m.paid || {}) };
+      const sec = { ...(paid[section] || {}) };
+      names.forEach(n => { sec[n] = val; });
+      paid[section] = sec;
+      return { ...m, paid };
+    }));
+  };
 
   const nextMonthLabel = () => {
     if (hist.length === 0) return "Jan 2024";
@@ -457,6 +485,37 @@ const DashboardTab = ({ currentMonth, setCurrentMonth, expenses, goals, monthlyD
   });
   const userExpTotal = userExpenses.reduce((s,e) => s + (e.amount||0), 0);
 
+  // ─── Payment Checklist (per-month line items with paid/received tracking) ───
+  const incomeChecklistEntries = (() => {
+    if (data.income && typeof data.income === "object" && Object.keys(data.income).length > 0) {
+      return Object.entries(data.income).filter(([,v]) => (parseFloat(v)||0) > 0);
+    }
+    const arr = [];
+    if (data.salary) arr.push(["Salary", data.salary]);
+    if (data.reimbursement) arr.push(["Reimbursement", data.reimbursement]);
+    if (data.fdReturn) arr.push(["FD Return", data.fdReturn]);
+    if (data.otherIncome) arr.push(["Other Income", data.otherIncome]);
+    return arr;
+  })();
+  const expenseChecklistEntries = Object.entries(data.expenses || {}).filter(([,v]) => (parseFloat(v)||0) > 0);
+  const savingsChecklistEntries = Object.entries(data.savings || {}).filter(([,v]) => (parseFloat(v)||0) > 0);
+
+  const checklistSections = [
+    { key:"income",   label:"Income",                 color:COLORS.accentLight, entries:incomeChecklistEntries },
+    { key:"expenses", label:"Expenses",               color:COLORS.red,         entries:expenseChecklistEntries },
+    { key:"savings",  label:"Savings & Investments",  color:COLORS.green,        entries:savingsChecklistEntries },
+  ].filter(s => s.entries.length > 0);
+
+  const isPaid = (section, name) => !!(data.paid && data.paid[section] && data.paid[section][name]);
+  let clDone = 0, clTotal = 0, clDoneAmt = 0, clPendAmt = 0;
+  checklistSections.forEach(s => s.entries.forEach(([name, val]) => {
+    const amt = parseFloat(val) || 0;
+    clTotal++;
+    if (isPaid(s.key, name)) { clDone++; clDoneAmt += amt; }
+    else clPendAmt += amt;
+  }));
+  const clProgress = clTotal ? Math.round((clDone / clTotal) * 100) : 0;
+
   if (hist.length === 0) return (
     <div style={{ textAlign:"center", padding:"40px 20px" }}>
       <div style={{ fontSize:48, marginBottom:12 }}>👋</div>
@@ -520,6 +579,68 @@ const DashboardTab = ({ currentMonth, setCurrentMonth, expenses, goals, monthlyD
           <div style={{ fontSize:11, color:COLORS.textMuted, marginTop:2 }}>{pct(cSavings, cIncome)}% of income</div>
         </Card>
       </div>
+
+      {/* Payment Checklist */}
+      {clTotal > 0 && (
+        <Card style={{ marginBottom:16 }}>
+          <div onClick={()=>setChecklistOpen(o=>!o)} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer" }}>
+            <div style={{ fontSize:14, fontWeight:600, color:COLORS.text }}>Payment Checklist</div>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <span style={{ fontSize:12, color:COLORS.textMuted, fontWeight:600 }}>{clDone}/{clTotal} done</span>
+              <span style={{ color:COLORS.textMuted, transform:checklistOpen?"rotate(180deg)":"none", transition:"transform 0.2s", display:"flex" }}>{Icons.chevDown}</span>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div style={{ height:6, background:COLORS.bg, borderRadius:4, overflow:"hidden", marginTop:10 }}>
+            <div style={{ width:`${clProgress}%`, height:"100%", background:clProgress===100?COLORS.green:COLORS.accent, borderRadius:4, transition:"width 0.3s ease" }}/>
+          </div>
+
+          {/* KPI row: Done / Pending amounts */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginTop:12 }}>
+            <div style={{ background:COLORS.greenBg, border:`1px solid ${COLORS.green}20`, borderRadius:10, padding:"8px 10px" }}>
+              <div style={{ fontSize:10, color:COLORS.green, fontWeight:600, marginBottom:2 }}>DONE</div>
+              <div style={{ fontSize:15, fontWeight:700, color:COLORS.text }}>{fmtFull(clDoneAmt)}</div>
+            </div>
+            <div style={{ background:COLORS.redBg, border:`1px solid ${COLORS.red}20`, borderRadius:10, padding:"8px 10px" }}>
+              <div style={{ fontSize:10, color:COLORS.orange, fontWeight:600, marginBottom:2 }}>PENDING</div>
+              <div style={{ fontSize:15, fontWeight:700, color:COLORS.text }}>{fmtFull(clPendAmt)}</div>
+            </div>
+          </div>
+
+          {/* Sections */}
+          {checklistOpen && checklistSections.map(section => {
+            const names = section.entries.map(([n]) => n);
+            const sectionDone = names.filter(n => isPaid(section.key, n)).length;
+            const allDone = sectionDone === names.length;
+            return (
+              <div key={section.key} style={{ marginTop:14 }}>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6 }}>
+                  <span style={{ fontSize:12, fontWeight:700, color:section.color }}>{section.label} <span style={{ color:COLORS.textDim, fontWeight:500 }}>· {sectionDone}/{names.length}</span></span>
+                  <button onClick={()=>setSectionPaid(section.key, names, !allDone)}
+                    style={{ background:"none", border:"none", color:COLORS.accentLight, fontSize:11, cursor:"pointer", fontFamily:"inherit", fontWeight:600 }}>
+                    {allDone ? "Clear all" : "Mark all"}
+                  </button>
+                </div>
+                {section.entries.map(([name, val]) => {
+                  const paid = isPaid(section.key, name);
+                  return (
+                    <div key={name} onClick={()=>togglePaid(section.key, name)}
+                      style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 0", borderBottom:`1px solid ${COLORS.border}10`, cursor:"pointer" }}>
+                      <div style={{ width:20, height:20, borderRadius:6, flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center",
+                        background:paid?COLORS.green:"transparent", border:`1.8px solid ${paid?COLORS.green:COLORS.borderLight}`, transition:"all 0.15s" }}>
+                        {paid && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={COLORS.bg} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                      </div>
+                      <span style={{ flex:1, fontSize:13, color:paid?COLORS.textDim:COLORS.text, textDecoration:paid?"line-through":"none", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{name}</span>
+                      <span style={{ fontSize:13, fontWeight:600, color:paid?COLORS.textDim:COLORS.text, fontVariantNumeric:"tabular-nums", textDecoration:paid?"line-through":"none" }}>{fmtFull(val)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </Card>
+      )}
 
       {/* Spending Breakdown Pie */}
       {(expEntries.length > 0 || cSavings > 0) && (
